@@ -1,0 +1,7 @@
+# Optional production adapters. The demo core runs on Python's standard library.
+torch>=2.2
+lightgbm>=4.3
+prophet>=1.1
+snowflake-connector-python>=3.7
+apache-airflow>=2.8
+cloudinary>=1.39
