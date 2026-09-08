@@ -6,11 +6,14 @@ production.
 """
 
 import json
+import os
+from datetime import datetime, timezone
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
 from pipeline.forecast import forecast_next_period
+from pipeline.ingest import load_signal_export
 from pipeline.signals import trend_velocity
 from pipeline.connectors import CloudinaryConfig, SnowflakeConfig
 
@@ -28,8 +31,26 @@ _OBSERVATIONS = (
 
 def build_overview() -> dict:
     """Build the dashboard contract from pipeline calculations."""
+    export_path = os.environ.get("THREADLINE_SIGNALS_FILE")
+    observations = load_signal_export(export_path) if export_path else None
     signals = []
-    for name, category, previous, current, prior_delta, width in _OBSERVATIONS:
+    source_observations = observations or [
+        {
+            "name": name,
+            "category": category,
+            "previous_count": previous,
+            "current_count": current,
+            "prior_delta": prior_delta,
+            "width": width,
+        }
+        for name, category, previous, current, prior_delta, width in _OBSERVATIONS
+    ]
+    for item in source_observations:
+        name = item["name"]
+        category = item["category"]
+        previous = item["previous_count"]
+        current = item["current_count"]
+        prior_delta = item["prior_delta"]
         signal = trend_velocity(previous, current, prior_delta)
         signals.append(
             {
@@ -39,14 +60,15 @@ def build_overview() -> dict:
                 "velocity": signal.velocity_percent,
                 "status": signal.status,
                 "confidence": signal.confidence,
-                "width": width,
+                "width": item.get("width", min(95, max(25, round(signal.velocity_percent / 1.6)))),
             }
         )
 
-    forecast = forecast_next_period([42, 49, 51, 60, 67, 79, 101])
+    daily_counts = source_observations[0].get("daily_counts", [42, 49, 51, 60, 67, 79, 101])
+    forecast = forecast_next_period(daily_counts)
     return {
-        "generated_at": "2026-09-08T09:42:00Z",
-        "demo_data": True,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "demo_data": observations is None,
         "metrics": {
             "trend_velocity": 38.6,
             "signals_detected": 1284,
@@ -70,7 +92,8 @@ def build_health() -> dict:
     snowflake = SnowflakeConfig.from_env()
     return {
         "status": "ready",
-        "demo_data": True,
+        "demo_data": not bool(os.environ.get("THREADLINE_SIGNALS_FILE")),
+        "signal_export": "configured" if os.environ.get("THREADLINE_SIGNALS_FILE") else "demo_fallback",
         "integrations": {
             "cloudinary": "configured" if cloudinary.configured else "not_configured",
             "snowflake": "configured" if snowflake.configured else "not_configured",

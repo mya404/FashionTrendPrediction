@@ -1,0 +1,17 @@
+[
+  {
+    "name": "Oversized blazers",
+    "category": "Silhouette",
+    "previous_count": 100,
+    "current_count": 242,
+    "prior_delta": 40,
+    "daily_counts": [42, 49, 51, 60, 67, 79, 101]
+  },
+  {
+    "name": "Washed denim",
+    "category": "Texture",
+    "previous_count": 350,
+    "current_count": 651,
+    "prior_delta": 18
+  }
+]

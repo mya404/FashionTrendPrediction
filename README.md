@@ -19,6 +19,18 @@ are configured. To enable real provider work, set credentials in your shell and
 install the optional packages from `requirements.txt`; the demo never sends
 synthetic data to either provider.
 
+To use a licensed aggregate export immediately, copy
+`data/signals.example.json`, replace its values with your permitted source data,
+and point the app at it:
+
+```bash
+export THREADLINE_SIGNALS_FILE=/absolute/path/to/signals.json
+python3 app.py
+```
+
+The export must be a JSON array with `name`, `category`, `previous_count`,
+`current_count`, and `prior_delta`. Optional `daily_counts` powers the forecast.
+
 Required production variables:
 
 ```text
