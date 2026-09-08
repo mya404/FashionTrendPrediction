@@ -1,11 +1,25 @@
 import unittest
 
+from app import build_health, build_overview
+from pipeline.connectors import CloudinaryConfig, SnowflakeConfig
 from pipeline.features import normalize_observation
 from pipeline.forecast import forecast_next_period
 from pipeline.signals import trend_velocity
 
 
 class PipelineTests(unittest.TestCase):
+    def test_provider_configuration_is_safe_by_default(self):
+        self.assertFalse(CloudinaryConfig.from_env().configured)
+        self.assertFalse(SnowflakeConfig.from_env().configured)
+        self.assertEqual(build_health()["integrations"]["cloudinary"], "not_configured")
+
+    def test_overview_contract_contains_computed_signals(self):
+        overview = build_overview()
+        self.assertTrue(overview["demo_data"])
+        self.assertEqual(len(overview["signals"]), 4)
+        self.assertEqual(overview["signals"][0]["status"], "accelerating")
+        self.assertEqual(overview["forecast"]["direction"], "up")
+
     def test_velocity_identifies_acceleration(self):
         signal = trend_velocity(100, 250, prior_delta=40)
         self.assertEqual(signal.status, "accelerating")
